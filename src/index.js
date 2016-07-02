@@ -1,14 +1,21 @@
 import React, { Component, PropTypes } from 'react'
 
-function getURLWithSalt(URL) {
-  if (typeof URL === 'string' && URL !=='' && URL.indexOf('data:') !== 0) {
-    const salt = Math.floor((Date.now() + Math.random()) * 100)
-    if (URL.indexOf('?') >= 0) {
-      return URL + '&_=' + salt
-    } 
-    return URL + '?_=' + salt
+function addSaltToURL(URL) {
+  const salt = Math.floor((Date.now() + Math.random()) * 100)
+  if (URL.indexOf('?') >= 0) {
+    return URL + '&_=' + salt
+  } 
+  return URL + '?_=' + salt
+}
+
+function getRouteWithSalt(CallbackOrURL) {
+  if (typeof CallbackOrURL === 'function') {
+    return function (...args) {
+      const targetURL = CallbackOrURL(...args)
+      return addSaltToURL(targetURL)
+    }
   }
-  return URL
+  return addSaltToURL(CallbackOrURL)
 }
 
 export default class RemoteData extends Component {
@@ -27,10 +34,13 @@ export default class RemoteData extends Component {
   constructor(props, context) {
     super(props, context)
     this._handleRetry = this.fetchData.bind(this)
-    const src = props.forceFetch ? getURLWithSalt(props.src) : props.src
+    const route =
+      props.forceFetch ?
+        getRouteWithSalt(props.route) :
+        props.route
     this.state = {
       ...props,
-      src,
+      route,
       isLoading: true,
       isFailed: false,
       request: null,
@@ -42,23 +52,23 @@ export default class RemoteData extends Component {
   }
 
   componentWillReceiveProps(nextProps) {
-    const { src, forceFetch } = this.props
+    const { route, forceFetch } = this.props
     const nextState = {}
-    const rawSrc  =
-      (nextProps.src !== src) ?
-        nextProps.src :
-        src
+    const rawRoute =
+      (nextProps.route !== route) ?
+        nextProps.route :
+        route
     const hasSalt = 
       (nextProps.forceFetch !== forceFetch) ?
         nextProps.forceFetch :
         forceFetch
-    const finalSrc =
+    const finalRoute =
       hasSalt ?
-        getURLWithSalt(rawSrc) :
-        rawSrc
-    if (finalSrc !== this.state.src) {
+        getRouteWithSalt(rawRoute) :
+        rawRoute
+    if (finalRoute !== this.state.route) {
       this.setState({
-        src: finalSrc,
+        route: finalRoute,
         isLoading: true,
         isFailed: false,
       }, () => this.fetchData())
@@ -67,11 +77,15 @@ export default class RemoteData extends Component {
 
   fetchData() {
     const { onLoad, onError } = this.props
-    const { src } = this.state
+    const { route } = this.state
     const { options } = this.options
     const finalOptions = options || {}
+    const finalURL =
+      (typeof route === 'function') ?
+        route() :
+        route
     const request =
-      fetch(src, finalOptions)
+      fetch(finalURL, finalOptions)
         .then(response => response.json())
         .then(data => {
           this.setState({
@@ -81,7 +95,7 @@ export default class RemoteData extends Component {
             lastError: null,
           }, () => {
             if (onLoad) {
-              onLoad(data)
+              onLoad(data, finalURL)
             }
           })
         })
@@ -93,7 +107,7 @@ export default class RemoteData extends Component {
             lastError: err,
           }, () => {
             if (onError) {
-              onError(data)
+              onError(err, finalURL)
             }
           })
         })
@@ -103,7 +117,7 @@ export default class RemoteData extends Component {
   }
 
   render() {
-    const { isLoading, isFailed, src, request, data, lastError } = this.state
+    const { isLoading, isFailed, route, request, data, lastError } = this.state
     const { renderLoading, renderFetched, renderFailure } = this.props
     if (isLoading) { 
       if (renderLoading) {
@@ -114,7 +128,7 @@ export default class RemoteData extends Component {
         return renderFailure(lastError, this._handleRetry, request)
       }
     } else if (renderFetched) {
-      return renderFetched({ src, data, request })
+      return renderFetched({ route, data, request })
     }
     return props.children
   }
