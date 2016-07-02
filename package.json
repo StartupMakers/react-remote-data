@@ -1,0 +1,35 @@
+{
+  "name": "react-remote-data",
+  "version": "0.1.0",
+  "description": "Simple data container with declarative state control. Just like Relay.",
+  "main": "lib/index.js",
+  "scripts": {
+    "clean": "rimraf lib dist",
+    "build:lib": "babel src --out-dir lib",
+    "build": "npm run clean && npm run build:lib",
+    "prepublish": "npm run build"
+  },
+  "author": "",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/StartupMakers/react-remote-data.git"
+  },
+  "bugs": "https://github.com/StartupMakers/react-remote-data/issues",
+  "dependencies": {
+    "react": "^0.14.8"
+  },
+  "devDependencies": {
+    "babel-core": "^6.7.4",
+    "babel-loader": "^6.2.4",
+    "babel-plugin-transform-class-properties": "^6.10.2",
+    "babel-plugin-transform-object-rest-spread": "^6.8.0",
+    "babel-preset-es2015": "^6.5.0",
+    "babel-preset-react": "^6.5.0",
+    "react-dom": "^0.14.8",
+    "rimraf": "^2.3.4"
+  },
+  "peerDependencies": {
+    "react": "^0.14.0 || ^15.0.0-0"
+  }
+}
